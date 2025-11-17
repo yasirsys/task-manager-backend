@@ -32,7 +32,8 @@ export class UsersService {
     adminId?: string
   ): Promise<UserDocument> {
     const exists = await this.userModel.findOne({ email: createUserDto.email });
-    if (exists) throw new BadRequestException('User already exists');
+    if (exists)
+      throw new BadRequestException('Email is already in use by another user');
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
@@ -101,6 +102,14 @@ export class UsersService {
     adminId: string,
     updateUserDto: UpdateUserDto
   ): Promise<UserDocument> {
+    const userWithEmailExists = await this.userModel.findOne({
+      email: updateUserDto.email,
+      _id: { $ne: new ObjectId(userId) }
+    });
+
+    if (userWithEmailExists)
+      throw new BadRequestException('Email is already in use by another user');
+
     const user = await this.userModel
       .findOneAndUpdate(
         { _id: new ObjectId(userId), createdBy: new ObjectId(adminId) },
