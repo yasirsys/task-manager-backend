@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AuthModule } from './auth/auth.module';
-import { DatabaseModule } from './database/database.module';
 
-import { UsersModule } from './users/users.module';
-import { TasksModule } from './tasks/tasks.module';
+import { AuthModule } from './auth/auth.module';
+import { CommonModule } from './common/common.module';
+import { DatabaseModule } from './database/database.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { TasksModule } from './tasks/tasks.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
       isGlobal: true
     }),
     AuthModule,
+    CommonModule,
     DashboardModule,
     DatabaseModule,
     TasksModule,

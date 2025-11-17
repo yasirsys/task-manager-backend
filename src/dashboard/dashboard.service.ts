@@ -4,10 +4,17 @@ import { Model, Types } from 'mongoose';
 
 import { Task, TaskDocument } from 'src/tasks/schemas/task.schema';
 import { User, UserDocument } from 'src/users/schemas/user.schema';
+
 import { TaskStatus } from 'src/constants/task.constants';
 import { UserStatus } from 'src/constants/user.constants';
 
+import {
+  CardsStatistics,
+  TaskAnalytics
+} from './interfaces/dashboard.interface';
+
 const { ObjectId } = Types;
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -15,7 +22,9 @@ export class DashboardService {
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>
   ) {}
 
-  async getCardsStatistics(adminId: string) {
+  async getCardsStatistics(adminId: string): Promise<CardsStatistics> {
+    const adminObjectId = new ObjectId(adminId);
+
     const [
       totalTasks = 0,
       totalCompletedTasks = 0,
@@ -23,18 +32,18 @@ export class DashboardService {
       totalUsers = 0,
       totalActiveUsers = 0
     ] = await Promise.all([
-      this.taskModel.countDocuments({ createdBy: new ObjectId(adminId) }),
+      this.taskModel.countDocuments({ createdBy: adminObjectId }),
       this.taskModel.countDocuments({
-        createdBy: new ObjectId(adminId),
+        createdBy: adminObjectId,
         status: TaskStatus.COMPLETED
       }),
       this.taskModel.countDocuments({
-        createdBy: new ObjectId(adminId),
+        createdBy: adminObjectId,
         status: TaskStatus.IN_PROGRESS
       }),
-      this.userModel.countDocuments({ createdBy: new ObjectId(adminId) }),
+      this.userModel.countDocuments({ createdBy: adminObjectId }),
       this.userModel.countDocuments({
-        createdBy: new ObjectId(adminId),
+        createdBy: adminObjectId,
         status: UserStatus.ACTIVE
       })
     ]);
@@ -53,15 +62,17 @@ export class DashboardService {
     };
   }
 
-  async getTaskAnalytics(adminId: string) {
+  async getTaskAnalytics(adminId: string): Promise<TaskAnalytics> {
+    const adminObjectId = new ObjectId(adminId);
+
     const [latestTasks, statusDistribution] = await Promise.all([
       this.taskModel
-        .find({ createdBy: new ObjectId(adminId) })
+        .find({ createdBy: adminObjectId })
         .sort({ createdAt: -1 })
         .populate('assignedTo', 'name email')
         .limit(3),
       this.taskModel.aggregate([
-        { $match: { createdBy: new ObjectId(adminId) } },
+        { $match: { createdBy: adminObjectId } },
         {
           $group: {
             _id: '$status',

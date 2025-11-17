@@ -3,15 +3,20 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import { Task, TaskDocument } from './schemas/task.schema';
+
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { TasksResponse } from './interfaces/tasks.interface';
 
 const { ObjectId } = Types;
 @Injectable()
 export class TasksService {
   constructor(@InjectModel(Task.name) private taskModel: Model<TaskDocument>) {}
 
-  async create(createTaskDto: CreateTaskDto, adminId: Types.ObjectId) {
+  async create(
+    createTaskDto: CreateTaskDto,
+    adminId: string
+  ): Promise<TaskDocument> {
     const task = new this.taskModel({
       ...createTaskDto,
       assignedTo: new ObjectId(createTaskDto.assignedTo),
@@ -20,17 +25,22 @@ export class TasksService {
     return await task.save();
   }
 
-  async findAll(skip = 0, limit = 10, adminId: string) {
+  async findAll(
+    skip: number = 0,
+    limit: number = 10,
+    adminId: string
+  ): Promise<TasksResponse> {
+    const adminObjectId = new ObjectId(adminId);
     const [tasks, total] = await Promise.all([
       this.taskModel
-        .find({ createdBy: new ObjectId(adminId) })
+        .find({ createdBy: adminObjectId })
         .skip(skip)
         .limit(limit)
         .populate('assignedTo', 'name email')
         .populate('createdBy', 'name email')
         .sort({ createdAt: -1 })
         .exec(),
-      this.taskModel.countDocuments({ createdBy: new ObjectId(adminId) }).exec()
+      this.taskModel.countDocuments({ createdBy: adminObjectId }).exec()
     ]);
 
     const page = Math.floor(skip / limit) + 1;
@@ -47,7 +57,7 @@ export class TasksService {
     };
   }
 
-  async findById(taskId: string, adminId: string) {
+  async findById(taskId: string, adminId: string): Promise<TaskDocument> {
     const task = await this.taskModel
       .findOne({ _id: new ObjectId(taskId), createdBy: new ObjectId(adminId) })
       .populate('assignedTo', 'name email')
@@ -57,7 +67,11 @@ export class TasksService {
     return task;
   }
 
-  async update(taskId: string, adminId: string, updateTaskDto: UpdateTaskDto) {
+  async update(
+    taskId: string,
+    adminId: string,
+    updateTaskDto: UpdateTaskDto
+  ): Promise<TaskDocument> {
     const updated = await this.taskModel.findOneAndUpdate(
       { _id: new ObjectId(taskId), createdBy: new ObjectId(adminId) },
       updateTaskDto,
@@ -69,7 +83,7 @@ export class TasksService {
     return updated;
   }
 
-  async delete(taskId: string, adminId: string) {
+  async delete(taskId: string, adminId: string): Promise<{ message: string }> {
     const deleted = await this.taskModel.findOneAndDelete({
       _id: new ObjectId(taskId),
       createdBy: new ObjectId(adminId)
@@ -78,7 +92,7 @@ export class TasksService {
     return { message: 'Task deleted successfully' };
   }
 
-  async deleteTasksByUser(userId: string) {
+  async deleteTasksByUser(userId: string): Promise<void> {
     await this.taskModel.deleteMany({ assignedTo: new ObjectId(userId) });
   }
 }

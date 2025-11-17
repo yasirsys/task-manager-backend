@@ -2,7 +2,11 @@ import * as bcrypt from 'bcrypt';
 
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+
 import { UsersService } from '../users/users.service';
+
+import { UserDocument } from '../users/schemas/user.schema';
+import { TokenResponse } from './interfaces/auth.interface';
 
 import { SignupDto } from './dto/signup.dto';
 import { UserRole } from 'src/constants/user.constants';
@@ -29,11 +33,11 @@ export class AuthService {
     return null;
   }
 
-  async getProfile(userId: string) {
+  async getProfile(userId: string): Promise<UserDocument> {
     return this.usersService.findById(userId);
   }
 
-  async registerAdmin(registerDto: SignupDto) {
+  async registerAdmin(registerDto: SignupDto): Promise<TokenResponse> {
     const existing = await this.usersService.findOneByQuery({
       email: registerDto.email
     });
@@ -52,7 +56,7 @@ export class AuthService {
     return token;
   }
 
-  async login(user: any) {
+  async login(user: UserDocument): Promise<TokenResponse> {
     const userInfo = await this.usersService.findById(String(user._id));
     if (!userInfo) throw new BadRequestException('User not found');
     if (userInfo.role !== UserRole.ADMIN)
@@ -60,7 +64,7 @@ export class AuthService {
     return this.generateToken(userInfo);
   }
 
-  private generateToken(user: any) {
+  private generateToken(user: UserDocument): TokenResponse {
     const payload = {
       userId: user._id,
       email: user.email,

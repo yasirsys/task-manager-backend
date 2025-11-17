@@ -1,4 +1,4 @@
-import { Logger, LogLevel, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import * as express from 'express';
@@ -8,12 +8,14 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
+import { LoggerService } from './common/logger/logger.service';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    bodyParser: false,
-    logger: ['error', 'warn', 'log'] // Set log levels
+    bodyParser: false
   });
 
+  const logger = await app.resolve(LoggerService);
   app.use(express.json());
 
   app.setGlobalPrefix('api/v1');
@@ -34,12 +36,11 @@ async function bootstrap() {
     })
   );
 
-  app.useGlobalInterceptors(new ResponseInterceptor());
-  app.useGlobalFilters(new AllExceptionsFilter());
+  app.useGlobalInterceptors(app.get(ResponseInterceptor));
+  app.useGlobalFilters(app.get(AllExceptionsFilter));
 
   await app.listen(process.env.PORT || 3000);
 
-  const logger = new Logger('Bootstrap');
   logger.log('🚀 Server Is Running');
 }
 bootstrap();

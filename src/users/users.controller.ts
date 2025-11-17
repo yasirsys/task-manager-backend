@@ -10,12 +10,19 @@ import {
   Req,
   UseGuards
 } from '@nestjs/common';
-import { UsersService } from './users.service';
+
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
+
+import { Roles } from '../auth/decorators/roles.decorator';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+
+import { GetUsersQueryDto } from './dto/get-users-query.dto';
+
+import { UsersService } from './users.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -24,51 +31,48 @@ export class UsersController {
 
   @Post()
   @Roles('admin')
-  create(@Body() createUserDto: CreateUserDto, @Req() req) {
-    return this.usersService.create(createUserDto, req.user.userId);
+  create(@Body() createUserDto: CreateUserDto, @GetUser('userId') adminId) {
+    return this.usersService.create(createUserDto, adminId);
   }
 
   @Get()
   @Roles('admin')
-  findAll(@Req() req) {
-    return this.usersService.findAll(req.user.userId);
+  findAll(@GetUser('userId') adminId) {
+    return this.usersService.findAll(adminId);
   }
 
   @Get('paginated')
   @Roles('admin')
   async findAllPaginated(
-    @Req() req,
-    @Query('skip') skip?: string,
-    @Query('limit') limit?: string
+    @GetUser('userId') adminId,
+    @Query() query: GetUsersQueryDto
   ) {
-    const skipNumber = parseInt(skip) || 0;
-    const limitNumber = parseInt(limit) || 10;
     return this.usersService.findAllPaginated(
-      skipNumber,
-      limitNumber,
-      req.user.userId
+      query.skip || 0,
+      query.limit || 10,
+      adminId
     );
   }
 
   @Get(':id')
   @Roles('admin')
-  findOne(@Param('id') id: string, @Req() req) {
-    return this.usersService.findOne(id, req.user.userId);
+  findOne(@Param('id') id: string, @GetUser('userId') adminId) {
+    return this.usersService.findOne(id, adminId);
   }
 
   @Patch(':id')
   @Roles('admin')
   update(
     @Param('id') id: string,
-    @Req() req,
+    @GetUser('userId') adminId,
     @Body() updateUserDto: UpdateUserDto
   ) {
-    return this.usersService.update(id, req.user.userId, updateUserDto);
+    return this.usersService.update(id, adminId, updateUserDto);
   }
 
   @Delete(':id')
   @Roles('admin')
-  remove(@Param('id') id: string, @Req() req) {
-    return this.usersService.remove(id, req.user.userId);
+  remove(@Param('id') id: string, @GetUser('userId') adminId) {
+    return this.usersService.remove(id, adminId);
   }
 }

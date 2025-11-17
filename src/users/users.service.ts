@@ -1,3 +1,5 @@
+import * as bcrypt from 'bcrypt';
+
 import {
   BadRequestException,
   Injectable,
@@ -6,14 +8,16 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
-import * as bcrypt from 'bcrypt';
-
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
-import { TasksService } from 'src/tasks/tasks.service';
 import { User, UserDocument } from './schemas/user.schema';
+
 import { UserRole, UserStatus } from 'src/constants/user.constants';
+
+import { UsersResponse } from './interfaces/users.interface';
+
+import { TasksService } from 'src/tasks/tasks.service';
 
 const { ObjectId } = Types;
 @Injectable()
@@ -23,7 +27,10 @@ export class UsersService {
     private taskService: TasksService
   ) {}
 
-  async create(createUserDto: CreateUserDto, adminId?: string): Promise<User> {
+  async create(
+    createUserDto: CreateUserDto,
+    adminId?: string
+  ): Promise<UserDocument> {
     const exists = await this.userModel.findOne({ email: createUserDto.email });
     if (exists) throw new BadRequestException('User already exists');
 
@@ -38,7 +45,7 @@ export class UsersService {
     });
   }
 
-  async findAll(adminId: string): Promise<User[]> {
+  async findAll(adminId: string): Promise<UserDocument[]> {
     return this.userModel
       .find({
         createdBy: new ObjectId(adminId),
@@ -49,7 +56,11 @@ export class UsersService {
       .exec();
   }
 
-  async findAllPaginated(skip: number, limit: number, adminId: string) {
+  async findAllPaginated(
+    skip: number,
+    limit: number,
+    adminId: string
+  ): Promise<UsersResponse> {
     const [users, total] = await Promise.all([
       this.userModel
         .find({ createdBy: new ObjectId(adminId), role: UserRole.USER })
@@ -76,7 +87,7 @@ export class UsersService {
     };
   }
 
-  async findOne(userId: string, adminId: string): Promise<User> {
+  async findOne(userId: string, adminId: string): Promise<UserDocument> {
     const user = await this.userModel
       .findOne({ _id: new ObjectId(userId), createdBy: new ObjectId(adminId) })
       .select('-password');
@@ -89,7 +100,7 @@ export class UsersService {
     userId: string,
     adminId: string,
     updateUserDto: UpdateUserDto
-  ): Promise<User> {
+  ): Promise<UserDocument> {
     const user = await this.userModel
       .findOneAndUpdate(
         { _id: new ObjectId(userId), createdBy: new ObjectId(adminId) },
@@ -111,15 +122,18 @@ export class UsersService {
   }
 
   // --- used by AuthService ---
-  async findSelectedUserField(query: any, field: string) {
+  async findSelectedUserField(
+    query: any,
+    field: string
+  ): Promise<UserDocument> {
     return this.userModel.findOne(query).select(field);
   }
 
-  async findOneByQuery(query: any) {
+  async findOneByQuery(query: any): Promise<UserDocument> {
     return this.userModel.findOne(query);
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<UserDocument> {
     return this.userModel.findById(id);
   }
 }
