@@ -72,6 +72,9 @@ export class TasksService {
     adminId: string,
     updateTaskDto: UpdateTaskDto
   ): Promise<TaskDocument> {
+    if (updateTaskDto.assignedTo)
+      updateTaskDto.assignedTo = new ObjectId(updateTaskDto.assignedTo);
+
     const updated = await this.taskModel.findOneAndUpdate(
       { _id: new ObjectId(taskId), createdBy: new ObjectId(adminId) },
       updateTaskDto,
