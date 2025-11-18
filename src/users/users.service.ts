@@ -37,13 +37,18 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-    return this.userModel.create({
+    const user = await this.userModel.create({
       ...createUserDto,
       ...(createUserDto.role === UserRole.USER && adminId
         ? { createdBy: new ObjectId(adminId) }
         : {}),
       password: hashedPassword
     });
+
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return userObj;
   }
 
   async findAll(adminId: string): Promise<UserDocument[]> {
